@@ -44,6 +44,7 @@ Public Class Settings
         New Setting("CacheExportConfig", "", Source:=Sources.Registry),
         New Setting("CacheSavedPageUrl", "", Source:=Sources.Registry),
         New Setting("CacheSavedPageVersion", "", Source:=Sources.Registry),
+        New Setting("LinkMethodChosen", "", Source:=Sources.Registry),
         New Setting("CacheMsOAuthRefresh", "", Source:=Sources.Registry, Encrypted:=True),
         New Setting("CacheMsAccess", "", Source:=Sources.Registry, Encrypted:=True),
         New Setting("CacheMsProfileJson", "", Source:=Sources.Registry, Encrypted:=True),

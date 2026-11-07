@@ -53,6 +53,80 @@
             </local:MyCard>
         </Grid>
         <Grid x:Name="PanContent">
+            <Grid x:Name="PanChoose" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="1*" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="1" MaxWidth="880">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*" MinWidth="248" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="1*" MinWidth="248" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="14" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.ColumnSpan="3" Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,18"
+                               Text="选择联机方式" FontSize="19" Foreground="{StaticResource ColorBrushGray1}" />
+                    <TextBlock Grid.ColumnSpan="3" Grid.Row="0" HorizontalAlignment="Center" Margin="0,28,0,0"
+                               Text="两种方式都通过虚拟局域网联机，选择后可在联机页右上角切换。" FontSize="12.5"
+                               Foreground="{StaticResource ColorBrushGray4}" />
+
+                    <local:MyCard Grid.Column="0" Grid.Row="2" CornerRadius="13" x:Name="CardChooseTerracotta">
+                        <Grid Margin="20,16,20,18">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="1*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <Path Height="23" Width="23" Margin="0,-1,9,0" Stretch="Uniform" Fill="{DynamicResource ColorBrush3}"
+                                      Data="M384 128v192h256a64 64 0 0 1 64 64v256h192V128H384zM320 320V128a64 64 0 0 1 64-64h512a64 64 0 0 1 64 64v512a64 64 0 0 1-64 64h-192v192a64 64 0 0 1-64 64H128a64 64 0 0 1-64-64V384a64 64 0 0 1 64-64h192z m320 384H384a64 64 0 0 1-64-64V384H128v512h512v-192z m0-64V384H384v256h256z" />
+                                <TextBlock Text="陶瓦联机" FontSize="18" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                                <Border Margin="8,1,0,0" Padding="7,2" CornerRadius="4" VerticalAlignment="Center" Background="#1A1370F3">
+                                    <TextBlock Text="推荐" FontSize="11" Foreground="{DynamicResource ColorBrush3}" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Margin="1,10,4,0" Text="开箱即用，无需额外安装。房主创建房间后把房间码发给朋友即可加入，房间码与陶瓦客户端、HMCL 互通。"
+                                       FontSize="13" LineHeight="19" TextWrapping="Wrap" Foreground="{StaticResource ColorBrushGray3}" />
+                            <TextBlock Grid.Row="2" Margin="1,12,4,0" Text="Terracotta · burningtnt · AGPL-3.0"
+                                       FontSize="11.5" TextWrapping="Wrap" Foreground="{StaticResource ColorBrushGray4}" VerticalAlignment="Top" />
+                            <local:MyButton x:Name="BtnChooseTerracotta" Grid.Row="3" Text="使用陶瓦联机" ColorType="Highlight" Height="34" Margin="1,14,4,0" />
+                        </Grid>
+                    </local:MyCard>
+
+                    <local:MyCard Grid.Column="2" Grid.Row="2" CornerRadius="13" x:Name="CardChooseMctier">
+                        <Grid Margin="20,16,20,18">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="1*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                <Path Height="23" Width="23" Margin="0,-1,9,0" Stretch="Uniform" Fill="{DynamicResource ColorBrush3}"
+                                      Data="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64z m0 820c-205.4 0-372-166.6-372-372s166.6-372 372-372 372 166.6 372 372-166.6 372-372 372z M716.3 324.5L484.1 566.1l-132.5-126a26.6 26.6 0 0 0-37.4 1l-.5.5a26.6 26.6 0 0 0 0 37.7l149.8 142.4c10.3 9.8 26.4 9.8 36.7 0l250-259.6a26.6 26.6 0 0 0-.4-37.6 26.6 26.6 0 0 0-33.5-2.1z" />
+                                <TextBlock Text="MCTier" FontSize="18" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                                <Border Margin="8,1,0,0" Padding="7,2" CornerRadius="4" VerticalAlignment="Center" Background="#1AFF9500">
+                                    <TextBlock Text="需下载" FontSize="11" Foreground="#FFA040" />
+                                </Border>
+                            </StackPanel>
+                            <TextBlock Grid.Row="1" Margin="1,10,4,0" Text="基于 EasyTier 与 WebRTC 的通用虚拟局域网工具，支持电脑与手机加入同一大厅，附带聊天室、文件与屏幕共享。"
+                                       FontSize="13" LineHeight="19" TextWrapping="Wrap" Foreground="{StaticResource ColorBrushGray3}" />
+                            <TextBlock Grid.Row="2" Margin="1,12,4,0" Text="MCTier · pmh1314520 · 本次选择后按需下载，不随启动器分发"
+                                       FontSize="11.5" TextWrapping="Wrap" Foreground="{StaticResource ColorBrushGray4}" VerticalAlignment="Top" />
+                            <local:MyButton x:Name="BtnChooseMctier" Grid.Row="3" Text="使用 MCTier" Height="34" Margin="1,14,4,0" />
+                        </Grid>
+                    </local:MyCard>
+                </Grid>
+            </Grid>
+
             <Grid x:Name="PanSelect">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="1*" />

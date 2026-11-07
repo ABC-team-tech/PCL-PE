@@ -139,9 +139,82 @@ Public Class PageLinkMain
     End Sub
 
     Private Sub UpdatePanelVisibility() Handles Me.PageEnter
-        FrmLinkMain.PanSelect.Visibility = If(LinkState = LinkStates.Waiting, Visibility.Visible, Visibility.Collapsed)
+        ' 尚未选择过联机方式时，优先展示选择界面
+        Dim ShowChoose As Boolean = LinkState = LinkStates.Waiting AndAlso String.IsNullOrEmpty(LinkMethod)
+        FrmLinkMain.PanChoose.Visibility = If(ShowChoose, Visibility.Visible, Visibility.Collapsed)
+        FrmLinkMain.PanSelect.Visibility = If(LinkState = LinkStates.Waiting AndAlso Not ShowChoose, Visibility.Visible, Visibility.Collapsed)
         FrmLinkMain.PanFinish.Visibility = If(LinkState = LinkStates.Finished, Visibility.Visible, Visibility.Collapsed)
     End Sub
+
+#End Region
+
+#Region "联机方式选择"
+
+    Private Const LinkMethodTerracotta As String = "Terracotta"
+    Private Const LinkMethodMctier As String = "MCTier"
+
+    Private Shared ReadOnly Property LinkMethod As String
+        Get
+            Dim Value As String = Settings.Get(Of String)("LinkMethodChosen")
+            Return If(Value, "")
+        End Get
+    End Property
+
+    Private Sub BtnChooseTerracotta_Click() Handles BtnChooseTerracotta.Click
+        Settings.Set("LinkMethodChosen", LinkMethodTerracotta)
+        UpdatePanelVisibility()
+    End Sub
+
+    Private Sub BtnChooseMctier_Click() Handles BtnChooseMctier.Click
+        Dim LocalExe As String = McTierLocalPath()
+        If LocalExe IsNot Nothing Then
+            Settings.Set("LinkMethodChosen", LinkMethodMctier)
+            UpdatePanelVisibility()
+            If MyMsgBox($"已切换到 MCTier 联机方式。" & vbCrLf & vbCrLf &
+                        $"检测到本机已安装 MCTier：{LocalExe}" & vbCrLf &
+                        "是否立即启动它？联机时请先在 MCTier 中创建或加入大厅，再在游戏内「对局域网开放」，然后通过大厅内的「游戏快连」获取对方地址。",
+                        "MCTier 联机", "启动 MCTier", "稍后") = 1 Then
+                Try
+                    StartProcess(LocalExe)
+                Catch ex As Exception
+                    Logger.Warn(ex, "启动 MCTier 失败")
+                    MyMsgBox("启动 MCTier 失败：" & ex.Message, "启动失败", IsWarn:=True)
+                End Try
+            End If
+            Return
+        End If
+
+        If MyMsgBox("MCTier 是独立的联机工具，启动器不会打包分发，需要单独下载。" & vbCrLf & vbCrLf &
+                    "· 便携版约 142 MB，下载后解压即可运行" & vbCrLf &
+                    "· 本项目采用非商业许可，请遵守其许可条款" & vbCrLf & vbCrLf &
+                    "是否打开 MCTier 的下载页面？下载完成后回到此处再次选择「使用 MCTier」，启动器会自动识别。",
+                    "需要下载 MCTier", "打开下载页", "取消") = 1 Then
+            OpenWebsite("https://github.com/pmh1314520/MCTier/releases/latest")
+        End If
+    End Sub
+
+    ''' <summary>在常见位置查找已安装的 MCTier，找不到返回 Nothing。</summary>
+    Private Shared Function McTierLocalPath() As String
+        Dim Candidates As New List(Of String)
+        Try
+            Candidates.Add(Paths.Base & "MCTier\MCTier.exe")
+            Candidates.Add(Paths.Base & "MCTier.exe")
+            For Each Folder As String In {"ProgramFiles", "ProgramFiles(x86)", "LocalAppData"}
+                Dim Root As String = Environment.GetEnvironmentVariable(Folder)
+                If Not String.IsNullOrEmpty(Root) Then Candidates.Add(IO.Path.Combine(Root, "MCTier", "MCTier.exe"))
+            Next
+            Candidates.Add(IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "MCTier", "MCTier.exe"))
+        Catch ex As Exception
+            Logger.Warn(ex, "枚举 MCTier 安装位置失败")
+        End Try
+        For Each Candidate In Candidates
+            Try
+                If IO.File.Exists(Candidate) Then Return Candidate
+            Catch
+            End Try
+        Next
+        Return Nothing
+    End Function
 
 #End Region
 
