@@ -38,6 +38,20 @@ msbuild PCLPro.sln -restore -p:Configuration=Release
 
 与 PCL2 一致，只发布单个 exe：直接运行即为便携版，不使用独立的安装器或补丁机制（避免杀软误报）。
 
+## 发布
+
+先在 `PCLPro\Modules\Base\ModBase.vb` 中确认 `VersionBaseName`，然后运行：
+
+```powershell
+.\publish.ps1
+```
+
+脚本会清理旧产物、构建 Release，并在 `release\` 下生成 exe、zip 与 `SHA256SUMS.txt`。构建前请确保启动器已完全退出，否则 `bin\` 下的 DLL 被占用会导致构建失败（MSB3027）。
+
+将 `release\PCL-Professional-Edition-<版本>.exe` 上传到 [Releases](https://github.com/ABC-team-tech/PCL-PE/releases)。
+
+> **附件命名有约束**：程序内「检查更新」会选取最新 Release 中第一个文件名**不含 `setup` 或 `install`** 的 `.exe` 附件。命中关键字会被判定为安装器，改走「启动安装程序」流程而非自替换更新。
+
 ## 许可
 
 - 本项目基于 PCL 二次创作，继续沿用上游的[《PCL 存储库合理使用指南》](https://github.com/Meloong-Git/PCL/blob/main/LICENCE)，不附加额外条款。

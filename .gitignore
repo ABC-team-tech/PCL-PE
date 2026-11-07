@@ -360,3 +360,7 @@ PCL/
 # 历史构建产物
 PCLFE_*.exe
 
+
+# 发布产物
+release/
+
