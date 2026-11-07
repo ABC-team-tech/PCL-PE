@@ -141,9 +141,15 @@ Public Class PageLinkMain
     Private Sub UpdatePanelVisibility() Handles Me.PageEnter
         ' 尚未选择过联机方式时，优先展示选择界面
         Dim ShowChoose As Boolean = LinkState = LinkStates.Waiting AndAlso String.IsNullOrEmpty(LinkMethod)
+        Dim ShowMctier As Boolean = LinkState = LinkStates.Waiting AndAlso Not ShowChoose AndAlso LinkMethod = LinkMethodMctier
+        Dim ShowSelect As Boolean = LinkState = LinkStates.Waiting AndAlso Not ShowChoose AndAlso Not ShowMctier
         FrmLinkMain.PanChoose.Visibility = If(ShowChoose, Visibility.Visible, Visibility.Collapsed)
-        FrmLinkMain.PanSelect.Visibility = If(LinkState = LinkStates.Waiting AndAlso Not ShowChoose, Visibility.Visible, Visibility.Collapsed)
+        FrmLinkMain.PanMctier.Visibility = If(ShowMctier, Visibility.Visible, Visibility.Collapsed)
+        FrmLinkMain.PanSelect.Visibility = If(ShowSelect, Visibility.Visible, Visibility.Collapsed)
         FrmLinkMain.PanFinish.Visibility = If(LinkState = LinkStates.Finished, Visibility.Visible, Visibility.Collapsed)
+        FrmLinkMain.LabAlwaysSource.Text = If(LinkMethod = LinkMethodMctier,
+            "联机由 MCTier 提供，启动器仅负责拉起与引导",
+            "联机功能由陶瓦联机 Terracotta 提供（AGPL-3.0）")
     End Sub
 
 #End Region
@@ -161,36 +167,122 @@ Public Class PageLinkMain
     End Property
 
     Private Sub BtnChooseTerracotta_Click() Handles BtnChooseTerracotta.Click
-        Settings.Set("LinkMethodChosen", LinkMethodTerracotta)
-        UpdatePanelVisibility()
+        ApplyLinkMethod(LinkMethodTerracotta)
     End Sub
 
     Private Sub BtnChooseMctier_Click() Handles BtnChooseMctier.Click
-        Dim LocalExe As String = McTierLocalPath()
-        If LocalExe IsNot Nothing Then
-            Settings.Set("LinkMethodChosen", LinkMethodMctier)
+        ApplyLinkMethod(LinkMethodMctier)
+    End Sub
+
+    Private Sub BtnSwitchMethod_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnSwitchMethod.MouseLeftButtonUp
+        If LinkState <> LinkStates.Waiting Then
+            Hint("请先退出当前联机房间，再切换联机方式。", HintType.Red)
+            Return
+        End If
+        If MyMsgBox($"当前使用的是 {LinkMethodDisplay(LinkMethod)}。" & vbCrLf & vbCrLf &
+                    "切换后不影响已保存的房间码，但需要重新创建或加入房间。" & vbCrLf &
+                    "是否切换联机方式？", "切换联机方式", "切换", "取消") = 1 Then
+            Settings.Set("LinkMethodChosen", "")
             UpdatePanelVisibility()
-            If MyMsgBox($"已切换到 MCTier 联机方式。" & vbCrLf & vbCrLf &
-                        $"检测到本机已安装 MCTier：{LocalExe}" & vbCrLf &
-                        "是否立即启动它？联机时请先在 MCTier 中创建或加入大厅，再在游戏内「对局域网开放」，然后通过大厅内的「游戏快连」获取对方地址。",
-                        "MCTier 联机", "启动 MCTier", "稍后") = 1 Then
-                Try
-                    StartProcess(LocalExe)
-                Catch ex As Exception
-                    Logger.Warn(ex, "启动 MCTier 失败")
-                    MyMsgBox("启动 MCTier 失败：" & ex.Message, "启动失败", IsWarn:=True)
-                End Try
+        End If
+    End Sub
+
+    Private Shared Function LinkMethodDisplay(Method As String) As String
+        Return If(Method = LinkMethodMctier, "MCTier", "陶瓦联机")
+    End Function
+
+    ''' <summary>统一的方式切换入口：写入设置、刷新界面、按方式给出后续指引。</summary>
+    Private Sub ApplyLinkMethod(Method As String)
+        Settings.Set("LinkMethodChosen", Method)
+        UpdatePanelVisibility()
+        If Method = LinkMethodMctier Then
+            EnterMcTierMethod()
+        End If
+    End Sub
+
+    Private Sub EnterMcTierMethod()
+        Dim LocalExe As String = McTierLocalPath()
+        If LocalExe Is Nothing Then
+            If MyMsgBox("MCTier 是独立的联机工具，启动器不会打包分发，需要单独下载。" & vbCrLf & vbCrLf &
+                        "· 便携版约 142 MB，下载后解压即可运行" & vbCrLf &
+                        "· 本项目采用非商业许可，请遵守其许可条款" & vbCrLf & vbCrLf &
+                        "是否打开 MCTier 的下载页面？下载完成后回到此处点击「启动 MCTier」，启动器会自动识别。",
+                        "需要下载 MCTier", "打开下载页", "稍后") = 1 Then
+                OpenWebsite("https://github.com/pmh1314520/MCTier/releases/latest")
             End If
             Return
         End If
 
-        If MyMsgBox("MCTier 是独立的联机工具，启动器不会打包分发，需要单独下载。" & vbCrLf & vbCrLf &
-                    "· 便携版约 142 MB，下载后解压即可运行" & vbCrLf &
-                    "· 本项目采用非商业许可，请遵守其许可条款" & vbCrLf & vbCrLf &
-                    "是否打开 MCTier 的下载页面？下载完成后回到此处再次选择「使用 MCTier」，启动器会自动识别。",
-                    "需要下载 MCTier", "打开下载页", "取消") = 1 Then
-            OpenWebsite("https://github.com/pmh1314520/MCTier/releases/latest")
+        Dim Result As Integer = MyMsgBox(
+            "已切换到 MCTier 联机方式。" & vbCrLf & vbCrLf &
+            $"检测到本机已安装 MCTier：{LocalExe}" & vbCrLf & vbCrLf &
+            McTierStepsText(),
+            "MCTier 联机", "启动 MCTier", "复制联机步骤", "稍后")
+        Select Case Result
+            Case 1
+                StartMcTier(LocalExe)
+            Case 2
+                ClipboardSet(McTierStepsText(), False)
+                Hint("联机步骤已复制到剪贴板", HintType.Green)
+        End Select
+    End Sub
+
+    ''' <summary>MCTier 无命令行接口，只能由用户在它自己的界面内创建/加入大厅，这里给出可照做的步骤。</summary>
+    Private Shared Function McTierStepsText() As String
+        Return "联机步骤：" & vbCrLf &
+               "1. 在 MCTier 中创建或加入大厅，把大厅邀请发给朋友" & vbCrLf &
+               "2. 进入游戏存档，在暂停菜单选择「对局域网开放」，记下聊天栏显示的端口" & vbCrLf &
+               "3. 房主在 MCTier 的「游戏快连」里找到自己的世界，朋友复制该地址后直接连接" & vbCrLf &
+               vbCrLf &
+               "说明：MCTier 没有提供命令行接口，启动器只能拉起它，无法代替它建立组网。"
+    End Function
+
+    Private Sub StartMcTier(LocalExe As String)
+        Try
+            Dim CurrentPort As Integer = TcDetectLanPort()
+            StartProcess(LocalExe)
+            If CurrentPort > 0 Then
+                ClipboardSet(CurrentPort.ToString(), False)
+                Hint($"已启动 MCTier，游戏端口 {CurrentPort} 已复制到剪贴板", HintType.Green)
+            Else
+                Hint("已启动 MCTier。请先在游戏内「对局域网开放」，再用 MCTier 的游戏快连连接。", HintType.Blue)
+            End If
+        Catch ex As Exception
+            Logger.Warn(ex, "启动 MCTier 失败")
+            MyMsgBox("启动 MCTier 失败：" & ex.Message, "启动失败", IsWarn:=True)
+        End Try
+    End Sub
+
+    ''' <summary>探测本机可能已「对局域网开放」的游戏端口，找不到返回 0。</summary>
+    Private Shared Function TcDetectLanPort() As Integer
+        ' 常见开放端口优先，其次扫描 Minecraft 默认区间
+        For Each Candidate As Integer In {25565, 25566, 25567}
+            If TcGamePortAlive(Candidate) Then Return Candidate
+        Next
+        For Port As Integer = 1024 To 25565
+            If TcGamePortAlive(Port) Then Return Port
+        Next
+        Return 0
+    End Function
+
+    Private Sub BtnLaunchMctier_Click() Handles BtnLaunchMctier.Click
+        Dim LocalExe As String = McTierLocalPath()
+        If LocalExe Is Nothing Then
+            If MyMsgBox("没有找到已安装的 MCTier。" & vbCrLf & "是否打开下载页面？", "MCTier 未安装", "打开下载页", "取消") = 1 Then
+                OpenWebsite("https://github.com/pmh1314520/MCTier/releases/latest")
+            End If
+            Return
         End If
+        StartMcTier(LocalExe)
+    End Sub
+
+    Private Sub BtnMctierSteps_Click() Handles BtnMctierSteps.Click
+        ClipboardSet(McTierStepsText(), False)
+        Hint("联机步骤已复制到剪贴板", HintType.Green)
+    End Sub
+
+    Private Sub BtnMctierDownload_Click() Handles BtnMctierDownload.Click
+        OpenWebsite("https://github.com/pmh1314520/MCTier/releases/latest")
     End Sub
 
     ''' <summary>在常见位置查找已安装的 MCTier，找不到返回 Nothing。</summary>
