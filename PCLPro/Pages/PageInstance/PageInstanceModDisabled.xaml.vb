@@ -1,0 +1,19 @@
+Public Class PageInstanceModDisabled
+
+    Private Sub BtnDownload_Click(sender As Object, e As EventArgs) Handles BtnDownload.Click
+        FrmMain.PageChange(FormMain.PageType.Download, FormMain.PageSubType.DownloadInstall)
+    End Sub
+    Private Sub BtnVersion_Click(sender As Object, e As EventArgs) Handles BtnVersion.Click
+        FrmMain.PageChange(FormMain.PageType.Launch)
+        FrmMain.PageChange(FormMain.PageType.InstanceSelect)
+    End Sub
+
+    Public Sub BtnDownload_Loaded() Handles BtnDownload.Loaded
+        Dim NewVisibility = If(RestrictMcDownload OrElse (Settings.Get(Of Boolean)("UiHiddenPageDownload") AndAlso Not PageSetupUI.HiddenForceShow) OrElse If(FrmSelectRight Is Nothing, False, FrmSelectRight.ShowHidden), Visibility.Collapsed, Visibility.Visible)
+        If BtnDownload.Visibility <> NewVisibility Then
+            BtnDownload.Visibility = NewVisibility
+            PanMain.TriggerForceResize()
+        End If
+    End Sub
+
+End Class

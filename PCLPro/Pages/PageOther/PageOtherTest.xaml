@@ -1,0 +1,77 @@
+<local:MyPageRight x:Class="PageOtherTest"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:d="http://schemas.openxmlformats.org/expression/blend/2008"
+    xmlns:local="clr-namespace:PCL"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+    PanScroll="PanBack">
+    <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
+        <StackPanel x:Name="PanMain" Margin="25,10" Grid.IsSharedSizeScope="True">
+
+            <local:MyCard Margin="0,15" Title="今日人品">
+                <StackPanel Margin="25,40,21,15">
+                    <TextBlock TextWrapping="Wrap" LineHeight="17"
+                               Text="想知道今天适不适合开坑吗？PCL 会根据今天的日期和你的机器算出今天的运气值。&#xa;数值仅供参考：欧皇即使显示 0 也照样出货，非酋就算 100 也照样翻车……" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <local:MyButton Text="看看今日人品" Width="160" Height="35" Padding="13,0" ColorType="Highlight" x:Name="BtnTestJrrp" />
+                    </StackPanel>
+                </StackPanel>
+            </local:MyCard>
+
+            <local:MyCard Margin="0,0,0,15" Title="回声洞">
+                <StackPanel Margin="25,40,21,15">
+                    <TextBlock x:Name="LabTestCave" TextWrapping="Wrap" LineHeight="18" FontSize="14"
+                               Text="洞里静悄悄的……" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <local:MyButton Text="再听一句" Width="120" Height="35" Padding="13,0" x:Name="BtnTestCave" />
+                    </StackPanel>
+                </StackPanel>
+            </local:MyCard>
+
+            <local:MyCard Margin="0,0,0,15" Title="随机小贴士">
+                <StackPanel Margin="25,40,21,15">
+                    <TextBlock x:Name="LabTestHint" TextWrapping="Wrap" LineHeight="18" FontSize="14"
+                               Text="点一下按钮，让 PCL 给你讲个小技巧。" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <local:MyButton Text="换一条" Width="120" Height="35" Padding="13,0" x:Name="BtnTestHint" />
+                    </StackPanel>
+                </StackPanel>
+            </local:MyCard>
+
+            <local:MyCard Margin="0,0,0,15" Title="提速与清理">
+                <StackPanel Margin="25,40,21,15">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="35" />
+                            <RowDefinition Height="35" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition Width="160" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <local:MyButton Text="内存优化（实验性）" Grid.Row="0" Grid.Column="0" Height="30" Padding="13,0" Margin="0,0,12,0" x:Name="BtnTestMemory" />
+                        <local:MyButton Text="垃圾清理" Grid.Row="0" Grid.Column="1" Height="30" Padding="13,0" Margin="0,0,12,0" x:Name="BtnTestClean" />
+                        <local:MyButton Text="打开数据目录" Grid.Row="1" Grid.Column="0" Height="30" Padding="13,0" Margin="0,0,12,0" x:Name="BtnTestOpenData" />
+                        <local:MyButton Text="查看日志" Grid.Row="1" Grid.Column="1" Height="30" Padding="13,0" Margin="0,0,12,0" x:Name="BtnTestOpenLog" />
+                    </Grid>
+                    <TextBlock x:Name="LabTestStat" Margin="0,10,0,0" TextWrapping="Wrap" LineHeight="17"
+                               Text="统计信息加载中……" />
+                </StackPanel>
+            </local:MyCard>
+
+            <local:MyCard Margin="0,0,0,15" Title="自定义下载">
+                <StackPanel Margin="25,40,21,15">
+                    <TextBlock TextWrapping="Wrap" LineHeight="17"
+                               Text="填入一个以 http:// 或 https:// 开头的网址，PCL 会把它下载到数据目录下的 Custom 文件夹，完成后自动打开文件夹。" />
+                    <local:MyTextBox x:Name="TextTestUrl" Margin="0,10,0,0" Height="32" MaxLength="500" HintText="https://……" />
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <local:MyButton Text="开始下载" Width="120" Height="35" Padding="13,0" ColorType="Highlight" x:Name="BtnTestDownload" />
+                    </StackPanel>
+                </StackPanel>
+            </local:MyCard>
+
+        </StackPanel>
+    </local:MyScrollViewer>
+</local:MyPageRight>

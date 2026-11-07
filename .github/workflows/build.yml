@@ -1,0 +1,49 @@
+name: Build
+on:
+  push:
+    paths:
+      - 'PCLPro/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'PCLPro/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Set Describe
+      shell: bash
+      run: |
+          describe=`git describe --tags --always`
+          echo "describe=$describe" >> $GITHUB_ENV
+
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@v2
+      with:
+        msbuild-architecture: x64
+
+    - name: Restore NuGet Packages
+      run: msbuild PCLPro.sln -restore -p:Configuration=${{ matrix.configuration }}
+
+    - name: Build
+      run: msbuild PCLPro.sln -p:Configuration=${{ matrix.configuration }}
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.configuration }} ${{ env.describe }}
+        path: PCLPro\bin\PCL Professional Edition.exe
