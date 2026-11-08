@@ -153,10 +153,26 @@
                             <Run Text="2. 进入游戏存档，在暂停菜单选择「对局域网开放」，记下聊天栏的端口" /><LineBreak />
                             <Run Text="3. 房主在 MCTier 的「游戏快连」里找到该世界，朋友复制地址后直接连接" />
                         </TextBlock>
-                        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="1,16,4,0">
-                            <local:MyButton x:Name="BtnLaunchMctier" Text="启动 MCTier" ColorType="Highlight" Height="34" MinWidth="120" />
-                            <local:MyButton x:Name="BtnMctierSteps" Text="复制联机步骤" Height="34" MinWidth="120" Margin="10,0,0,0" />
-                            <local:MyButton x:Name="BtnMctierDownload" Text="下载页面" Height="34" MinWidth="100" Margin="10,0,0,0" />
+                        <StackPanel Grid.Row="3" Margin="1,14,4,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*" />
+                                    <ColumnDefinition Width="10" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <local:MyTextBox x:Name="TextMctierCode" Height="34" FontSize="13" VerticalContentAlignment="Center"
+                                                 ToolTip="房主创建大厅时设置的大厅名称" />
+                                <local:MyButton x:Name="BtnMctierJoin" Grid.Column="2" Text="加入大厅" ColorType="Highlight" Height="34" MinWidth="100" />
+                            </Grid>
+                            <TextBlock x:Name="LabMctierStatus" Margin="1,10,4,0" FontSize="11.5" LineHeight="17" TextWrapping="Wrap"
+                                       Foreground="{StaticResource ColorBrushGray4}"
+                                       Text="正在等待 MCTier 控制接口……" />
+                            <StackPanel Orientation="Horizontal" Margin="1,14,4,0">
+                                <local:MyButton x:Name="BtnMctierCreate" Text="创建大厅" ColorType="Highlight" Height="34" MinWidth="110" />
+                                <local:MyButton x:Name="BtnLaunchMctier" Text="启动 MCTier" Height="34" MinWidth="110" Margin="10,0,0,0" />
+                                <local:MyButton x:Name="BtnMctierSteps" Text="复制联机步骤" Height="34" MinWidth="110" Margin="10,0,0,0" />
+                                <local:MyButton x:Name="BtnMctierDownload" Text="下载页面" Height="34" MinWidth="90" Margin="10,0,0,0" />
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
                 </local:MyCard>

@@ -150,6 +150,9 @@ Public Class PageLinkMain
         FrmLinkMain.LabAlwaysSource.Text = If(LinkMethod = LinkMethodMctier,
             "联机由 MCTier 提供，启动器仅负责拉起与引导",
             "联机功能由陶瓦联机 Terracotta 提供（AGPL-3.0）")
+        If ShowMctier Then
+            RefreshMcTierPanel(McTierControlAlive())
+        End If
     End Sub
 
 #End Region
@@ -203,12 +206,12 @@ Public Class PageLinkMain
     Private Sub EnterMcTierMethod()
         Dim LocalExe As String = McTierLocalPath()
         If LocalExe Is Nothing Then
-            If MyMsgBox("MCTier 是独立的联机工具，启动器不会打包分发，需要单独下载。" & vbCrLf & vbCrLf &
-                        "· 便携版约 142 MB，下载后解压即可运行" & vbCrLf &
-                        "· 本项目采用非商业许可，请遵守其许可条款" & vbCrLf & vbCrLf &
-                        "是否打开 MCTier 的下载页面？下载完成后回到此处点击「启动 MCTier」，启动器会自动识别。",
-                        "需要下载 MCTier", "打开下载页", "稍后") = 1 Then
-                OpenWebsite("https://github.com/pmh1314520/MCTier/releases/latest")
+            If MyMsgBox("MCTier 是独立的联机工具，需要单独下载（约 141 MB）。" & vbCrLf & vbCrLf &
+                        "· 启动器会下载并解压到本地，之后可离线使用" & vbCrLf &
+                        "· 下载源为本项目的 GitHub Release（已按上游要求重建 EasyTier，不含 Npcap）" & vbCrLf & vbCrLf &
+                        "是否现在下载？",
+                        "需要下载 MCTier", "下载并安装", "稍后") = 1 Then
+                DownloadMcTier()
             End If
             Return
         End If
@@ -220,7 +223,8 @@ Public Class PageLinkMain
             "MCTier 联机", "启动 MCTier", "复制联机步骤", "稍后")
         Select Case Result
             Case 1
-                StartMcTier(LocalExe)
+                ' 复用按钮流程：以 --hmcl2 方式拉起并等待控制接口
+                BtnLaunchMctier_Click()
             Case 2
                 ClipboardSet(McTierStepsText(), False)
                 Hint("联机步骤已复制到剪贴板", HintType.Green)
@@ -237,25 +241,112 @@ Public Class PageLinkMain
                "说明：MCTier 没有提供命令行接口，启动器只能拉起它，无法代替它建立组网。"
     End Function
 
-    Private Sub StartMcTier(LocalExe As String)
+    ''' <summary>
+    ''' 以 --hmcl2 方式启动 MCTier，并等待其写出控制端口。
+    ''' 返回 True 表示控制接口可用（可驱动组网）；False 表示本机 MCTier 不支持该参数（原版）。
+    ''' </summary>
+    Private Shared Function StartMcTierWithControl(LocalExe As String) As Boolean
         Try
-            Dim CurrentPort As Integer = TcDetectLanPort()
-            StartProcess(LocalExe)
-            If CurrentPort > 0 Then
-                ClipboardSet(CurrentPort.ToString(), False)
-                Hint($"已启动 MCTier，游戏端口 {CurrentPort} 已复制到剪贴板", HintType.Green)
-            Else
-                Hint("已启动 MCTier。请先在游戏内「对局域网开放」，再用 MCTier 的游戏快连连接。", HintType.Blue)
-            End If
-        Catch ex As Exception
-            Logger.Warn(ex, "启动 MCTier 失败")
-            MyMsgBox("启动 MCTier 失败：" & ex.Message, "启动失败", IsWarn:=True)
-        End Try
-    End Sub
+            ' 若已有可用的控制端口，直接复用
+            If McTierControlAlive() Then Return True
 
-    ''' <summary>探测本机可能已「对局域网开放」的游戏端口，找不到返回 0。</summary>
+            Dim PortDir As String = IO.Path.Combine(IO.Path.GetTempPath(), "PCLPro-MCTier-" & Guid.NewGuid().ToString("N"))
+            DirectoryUtils.Create(PortDir)
+            Dim PortFile As String = IO.Path.Combine(PortDir, "http")
+
+            Logger.Info($"正在以控制接口方式启动 MCTier：{LocalExe} --hmcl2 {PortFile}")
+            Dim Info As New ProcessStartInfo(LocalExe, $"--hmcl2 ""{PortFile}""") With {
+                .WorkingDirectory = IO.Path.GetDirectoryName(LocalExe),
+                .UseShellExecute = False
+            }
+            Process.Start(Info)
+
+            ' 轮询端口文件，最多 15 秒
+            For i = 1 To 150
+                If IO.File.Exists(PortFile) Then
+                    Dim Text As String = IO.File.ReadAllText(PortFile).Trim()
+                    Dim Port As Integer
+                    If Integer.TryParse(Text, Port) AndAlso Port > 0 Then
+                        McTierPort = Port
+                        Logger.Info($"MCTier 控制接口端口：{Port}")
+                        Return True
+                    End If
+                End If
+                Thread.Sleep(100)
+            Next
+            Logger.Warn("等待 MCTier 控制端口超时，可能当前 MCTier 版本不支持 --hmcl2")
+            McTierPort = 0
+            Return False
+        Catch ex As Exception
+            Logger.Warn(ex, "以控制接口方式启动 MCTier 失败")
+            McTierPort = 0
+            Return False
+        End Try
+    End Function
+
+    Private Shared McTierPort As Integer = 0
+
+    Private Shared Function McTierControlAlive() As Boolean
+        If McTierPort <= 0 Then Return False
+        Try
+            Dim Body As String = Nothing
+            Return McTierApiStatus("/state", Body, 1200) = 200
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Shared Function McTierApi(Path As String, Optional TimeoutMs As Integer = 4000) As String
+        Dim Body As String = Nothing
+        McTierApiStatus(Path, Body, TimeoutMs)
+        Return Body
+    End Function
+
+    Private Shared Function McTierApiStatus(Path As String, ByRef Body As String, Optional TimeoutMs As Integer = 4000,
+                                            Optional Method As String = "GET", Optional Json As String = Nothing) As Integer
+        Body = Nothing
+        If McTierPort <= 0 Then Return -1
+        Try
+            Dim Request As HttpWebRequest = CType(WebRequest.Create($"http://127.0.0.1:{McTierPort}{Path}"), HttpWebRequest)
+            Request.Method = Method
+            Request.Timeout = TimeoutMs
+            Request.ReadWriteTimeout = TimeoutMs
+            Request.Proxy = Nothing
+            Request.KeepAlive = False
+            Request.ContentType = "application/json; charset=utf-8"
+            If Json IsNot Nothing Then
+                Dim Bytes As Byte() = Encoding.UTF8.GetBytes(Json)
+                Request.ContentLength = Bytes.Length
+                Using Stream As IO.Stream = Request.GetRequestStream()
+                    Stream.Write(Bytes, 0, Bytes.Length)
+                End Using
+            End If
+            Using Response As HttpWebResponse = CType(Request.GetResponse(), HttpWebResponse)
+                Using Reader As New IO.StreamReader(Response.GetResponseStream(), Encoding.UTF8)
+                    Body = Reader.ReadToEnd()
+                End Using
+                Return CInt(Response.StatusCode)
+            End Using
+        Catch ex As WebException
+            If ex.Response IsNot Nothing Then
+                Try
+                    Using Reader As New IO.StreamReader(ex.Response.GetResponseStream(), Encoding.UTF8)
+                        Body = Reader.ReadToEnd()
+                    End Using
+                    Return CInt(CType(ex.Response, HttpWebResponse).StatusCode)
+                Catch
+                End Try
+            End If
+            Logger.Warn(ex, $"调用 MCTier 控制接口失败（{Path}）")
+            Return -1
+        Catch ex As Exception
+            Logger.Warn(ex, $"调用 MCTier 控制接口失败（{Path}）")
+            Return -1
+        End Try
+    End Function
+
+    ''' <summary>本机已「对局域网开放」的游戏端口，找不到返回 0。</summary>
     Private Shared Function TcDetectLanPort() As Integer
-        ' 常见开放端口优先，其次扫描 Minecraft 默认区间
         For Each Candidate As Integer In {25565, 25566, 25567}
             If TcGamePortAlive(Candidate) Then Return Candidate
         Next
@@ -273,7 +364,32 @@ Public Class PageLinkMain
             End If
             Return
         End If
-        StartMcTier(LocalExe)
+
+        RunInNewThread(
+        Sub()
+            Dim HasControl As Boolean = StartMcTierWithControl(LocalExe)
+            Dim Port As Integer = TcDetectLanPort()
+            RunInUi(
+            Sub()
+                If HasControl Then
+                    Hint("MCTier 已启动并接入控制接口，可直接在下方创建或加入房间。", HintType.Green)
+                    RefreshMcTierPanel(True)
+                Else
+                    Hint("已启动 MCTier（当前版本不支持控制接口，需在 MCTier 内手动操作）。", HintType.Blue)
+                    If Port > 0 Then ClipboardSet(Port.ToString(), False)
+                End If
+            End Sub)
+        End Sub, "MCTier Launcher")
+    End Sub
+
+    ''' <summary>根据控制接口可用性刷新 MCTier 面板。控制接口可用时开放建/进房按钮。</summary>
+    Private Sub RefreshMcTierPanel(HasControl As Boolean)
+        FrmLinkMain.BtnMctierCreate.IsEnabled = HasControl
+        FrmLinkMain.BtnMctierJoin.IsEnabled = HasControl
+        FrmLinkMain.TextMctierCode.IsEnabled = HasControl
+        FrmLinkMain.LabMctierStatus.Text = If(HasControl,
+            "控制接口已连接：可直接建房或输入房主的大厅名加入。",
+            "控制接口未连接：需要装有支持 --hmcl2 的 MCTier 版本，或在其界面内手动操作。")
     End Sub
 
     Private Sub BtnMctierSteps_Click() Handles BtnMctierSteps.Click
@@ -282,8 +398,136 @@ Public Class PageLinkMain
     End Sub
 
     Private Sub BtnMctierDownload_Click() Handles BtnMctierDownload.Click
-        OpenWebsite("https://github.com/pmh1314520/MCTier/releases/latest")
+        Dim LocalExe As String = McTierLocalPath()
+        If LocalExe Is Nothing Then
+            If MyMsgBox("MCTier 尚未安装，是否现在下载（约 141 MB）？", "下载 MCTier", "下载并安装", "稍后") = 1 Then
+                DownloadMcTier()
+            End If
+            Return
+        End If
+        If MyMsgBox($"MCTier 已安装在：{vbCrLf}{LocalExe}{vbCrLf}{vbCrLf}是否重新下载并覆盖？", "重新下载 MCTier", "重新下载", "取消") = 1 Then
+            DownloadMcTier()
+        End If
     End Sub
+
+    Private Sub BtnMctierCreate_Click() Handles BtnMctierCreate.Click
+        Dim Room As String = InputBoxOrCancel("输入大厅名称", "创建 MCTier 大厅", $"PCL-{RandomInteger(1000, 9999)}")
+        If Room Is Nothing Then Return
+        Dim Port As Integer = TcDetectLanPort()
+        Dim Player As String = TcPlayerName()
+        Dim Request As JObject = New JObject From {
+            {"name", Room}, {"password", ""}, {"player_name", Player}, {"player_id", GetUuid().ToString()},
+            {"server_node", ""}, {"signaling_server", ""}, {"address_attempt", 0}
+        }
+        If Port > 0 Then Request("mc_port") = Port
+
+        Dim Body As String = Nothing
+        Dim Code As Integer = McTierApiStatus("/lobby/create", Body, 30000, "POST", Request.ToString(Newtonsoft.Json.Formatting.None))
+        If Code = 200 Then
+            Hint($"已创建大厅「{Room}」，游戏端口 {(If(Port > 0, Port.ToString(), "未检测到"))} 已开始广播。", HintType.Green)
+        Else
+            MyMsgBox("创建 MCTier 大厅失败：" & vbCrLf & If(Body, "（无响应）"), "创建失败", IsWarn:=True)
+        End If
+    End Sub
+
+    Private Sub BtnMctierJoin_Click() Handles BtnMctierJoin.Click
+        Dim Room As String = FrmLinkMain.TextMctierCode.Text
+        If String.IsNullOrWhiteSpace(Room) Then
+            Hint("请输入房主的大厅名称", HintType.Red)
+            Return
+        End If
+        Dim Port As Integer = TcDetectLanPort()
+        Dim Player As String = TcPlayerName()
+        Dim Request As JObject = New JObject From {
+            {"name", Room.Trim()}, {"password", ""}, {"player_name", Player}, {"player_id", GetUuid().ToString()},
+            {"server_node", ""}, {"signaling_server", ""}, {"address_attempt", 0}
+        }
+        If Port > 0 Then Request("mc_port") = Port
+
+        Dim Body As String = Nothing
+        Dim Code As Integer = McTierApiStatus("/lobby/join", Body, 30000, "POST", Request.ToString(Newtonsoft.Json.Formatting.None))
+        If Code = 200 Then
+            Hint($"已加入大厅「{Room}」，房主的世界应会出现在多人游戏列表中。", HintType.Green)
+        Else
+            MyMsgBox("加入 MCTier 大厅失败：" & vbCrLf & If(Body, "（无响应）"), "加入失败", IsWarn:=True)
+        End If
+    End Sub
+
+    Private Shared Function InputBoxOrCancel(Title As String, Caption As String, DefaultValue As String) As String
+        Return MyMsgBoxInput(Caption, "", DefaultInput:=DefaultValue)
+    End Function
+
+    ''' <summary>MCTier 发布源（本项目 Release，内置去 Npcap 的 EasyTier）。</summary>
+    Private Const McTierReleaseRepo As String = "ABC-team-tech/mctier-pcl-pe"
+    Private Const McTierAssetName As String = "MCTier-PCLPE-v3.10.0.zip"
+    Private Const McTierAssetSha256 As String = "491F5921794B67AC3CC93C52FFC48C7F418500857AEB8572330886D9FEBD761E"
+
+    ''' <summary>下载并安装 MCTier 到启动器目录下的 MCTier\ 子目录。</summary>
+    Private Sub DownloadMcTier()
+        Dim TargetDir As String = Paths.Base & "MCTier\"
+        Dim ZipPath As String = PathTmpMcTier & McTierAssetName
+        Dim Urls As New List(Of String) From {
+            $"https://github.com/{McTierReleaseRepo}/releases/download/v3.10.0-pclpe/{McTierAssetName}",
+            $"https://ghfast.top/https://github.com/{McTierReleaseRepo}/releases/download/v3.10.0-pclpe/{McTierAssetName}",
+            $"https://gh-proxy.com/https://github.com/{McTierReleaseRepo}/releases/download/v3.10.0-pclpe/{McTierAssetName}"
+        }
+
+        UpdateProgressShow("下载 MCTier")
+        RunInNewThread(
+        Sub()
+            Try
+                DirectoryUtils.Create(PathTmpMcTier)
+                UpdateProgressSet(2, "正在连接下载源……")
+                Logger.Info($"开始下载 MCTier：{Urls(0)}")
+
+                ' 带 SHA256 校验下载，任一镜像可用即可
+                NetDownloadByLoader(Urls, ZipPath, Check:=New FileChecker With {.Hash = McTierAssetSha256, .MinSize = 100 * 1024 * 1024})
+                UpdateProgressSet(65, "下载完成，正在校验……")
+
+                UpdateProgressSet(70, "正在解压……")
+                Dim ExtractDir As String = PathTmpMcTier & "extract\"
+                DirectoryUtils.Delete(ExtractDir)
+                DirectoryUtils.Create(ExtractDir)
+                FileUtils.ExtractToDirectory(ZipPath, ExtractDir)
+
+                UpdateProgressSet(90, "正在安装……")
+                ' 包内结构为 MCTier\MCTier.exe；兼容直接放在根的情况
+                Dim SourceExe As String = IO.Path.Combine(ExtractDir, "MCTier", "MCTier.exe")
+                If Not IO.File.Exists(SourceExe) Then SourceExe = IO.Path.Combine(ExtractDir, "MCTier.exe")
+                If Not IO.File.Exists(SourceExe) Then Throw New Exception("压缩包内未找到 MCTier.exe")
+
+                DirectoryUtils.Create(TargetDir)
+                Dim TargetExe As String = IO.Path.Combine(TargetDir, "MCTier.exe")
+                FileUtils.Copy(SourceExe, TargetExe)
+                FileUtils.Delete(ZipPath)
+                DirectoryUtils.Delete(ExtractDir)
+                UpdateProgressSet(100, "安装完成")
+
+                RunInUi(
+                Sub()
+                    UpdateProgressClose()
+                    Hint("MCTier 已下载并安装完成", HintType.Green)
+                    RefreshMcTierPanel(False)
+                End Sub)
+            Catch ex As Exception
+                Logger.Warn(ex, "下载 MCTier 失败")
+                RunInUi(
+                Sub()
+                    UpdateProgressClose()
+                    MyMsgBox("下载 MCTier 失败：" & vbCrLf & ex.Message & vbCrLf & vbCrLf &
+                             $"可手动访问 https://github.com/{McTierReleaseRepo}/releases 下载，" & vbCrLf &
+                             "解压后把 MCTier.exe 放到：" & vbCrLf & TargetDir,
+                             "下载失败", IsWarn:=True)
+                End Sub)
+            End Try
+        End Sub, "MCTier Downloader")
+    End Sub
+
+    Private ReadOnly Property PathTmpMcTier As String
+        Get
+            Return PathTemp & "McTierDownload\"
+        End Get
+    End Property
 
     ''' <summary>在常见位置查找已安装的 MCTier，找不到返回 Nothing。</summary>
     Private Shared Function McTierLocalPath() As String
