@@ -12,6 +12,12 @@ Public Class FormMain
         Dim FeatureList As New List(Of KeyValuePair(Of Integer, String))
 
         If BuildType = BuildTypes.Release Then
+            If LastVersion < 436 Then
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "(๑•̀ㅂ•́)و✧ 新增 联机页首次打开时可选择「陶瓦联机」或「MCTier」两种联机方式 页脚可随时切换"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "(｡•̀ᴗ-)✧ 新增 MCTier 联机支持 可直接在启动器内创建或加入大厅 游戏端口自动广播到朋友的大厅列表"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(4, "( •̀ ω •́ )✧ 新增 MCTier 按需下载 首次选择时自动下载并校验 约141MB 支持多镜像回退 之后可离线使用"))
+                FeatureList.Add(New KeyValuePair(Of Integer, String)(4, "(´･ω･`) 优化 MCTier 内置的 EasyTier 已从源码重建 去掉了对 Npcap 的依赖 免除额外安装驱动"))
+            End If
             If LastVersion < 435 Then
                 FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "(｡•̀ᴗ-)✧ 修复 从毛玻璃模式切回简洁版时部分界面不立即生效 现在所有卡片与仍然打开的弹窗都会马上恢复平面样式"))
                 FeatureList.Add(New KeyValuePair(Of Integer, String)(4, "(๑•̀ㅂ•́)و✧ 新增 界面文字颜色可自定义 可随手挑颜色 也可以一键跟随主题 深色壁纸配浅色文字更清楚"))
