@@ -446,19 +446,47 @@ Public Class PageLinkMain
         End If
     End Sub
 
+    ''' <summary>MCTier 内置的默认 EasyTier 节点与信令服务器，与它前端 LobbyForm 的默认值保持一致。</summary>
+    Private Const McTierDefaultNode As String = "tcp://easytier.weiai.org.cn:11010"
+    Private Const McTierDefaultSignaling As String = "wss://mctier.pmhs.top/signaling"
+
+    ''' <summary>
+    ''' 取得本机的信令身份指纹，用作 create/join 的 player_id。
+    ''' MCTier 要求 player_id 是它自己签发的 64 位十六进制身份指纹（用于派生 hosts 域名），
+    ''' 不能由启动器自造 UUID，否则会报「信令身份 ID 无效」。
+    ''' </summary>
+    Private Shared Function McTierPlayerId() As String
+        Dim Body As String = McTierApi("/signaling/identity", 15000)
+        If String.IsNullOrWhiteSpace(Body) Then Return Nothing
+        Try
+            Dim Json As JObject = Body.DeserializeJson()
+            Dim Id As String = If(Json("clientId")?.ToString, "")
+            If Id.RegexCheck("^[0-9a-f]{64}$") Then Return Id
+            Logger.Warn($"MCTier 返回的信令身份格式异常：{Id}")
+        Catch ex As Exception
+            Logger.Warn(ex, "解析 MCTier 信令身份失败")
+        End Try
+        Return Nothing
+    End Function
+
     Private Sub BtnMctierCreate_Click() Handles BtnMctierCreate.Click
         Dim Room As String = InputBoxOrCancel("输入大厅名称", "创建 MCTier 大厅", $"PCL-{RandomInteger(1000, 9999)}")
         If Room Is Nothing Then Return
+        Dim PlayerId As String = McTierPlayerId()
+        If PlayerId Is Nothing Then
+            MyMsgBox("无法获取 MCTier 的信令身份，请确认 MCTier 已启动且控制接口已连接。", "创建失败", IsWarn:=True)
+            Return
+        End If
         Dim Port As Integer = TcDetectLanPort()
         Dim Player As String = TcPlayerName()
         Dim Request As JObject = New JObject From {
-            {"name", Room}, {"password", ""}, {"player_name", Player}, {"player_id", GetUuid().ToString()},
-            {"server_node", ""}, {"signaling_server", ""}, {"address_attempt", 0}
+            {"name", Room}, {"password", ""}, {"player_name", Player}, {"player_id", PlayerId},
+            {"server_node", McTierDefaultNode}, {"signaling_server", McTierDefaultSignaling}, {"address_attempt", 0}
         }
         If Port > 0 Then Request("mc_port") = Port
 
         Dim Body As String = Nothing
-        Dim Code As Integer = McTierApiStatus("/lobby/create", Body, 30000, "POST", Request.ToString(Newtonsoft.Json.Formatting.None))
+        Dim Code As Integer = McTierApiStatus("/lobby/create", Body, 60000, "POST", Request.ToString(Newtonsoft.Json.Formatting.None))
         If Code = 200 Then
             Hint($"已创建大厅「{Room}」，游戏端口 {(If(Port > 0, Port.ToString(), "未检测到"))} 已开始广播。", HintType.Green)
         Else
@@ -472,16 +500,21 @@ Public Class PageLinkMain
             Hint("请输入房主的大厅名称", HintType.Red)
             Return
         End If
+        Dim PlayerId As String = McTierPlayerId()
+        If PlayerId Is Nothing Then
+            MyMsgBox("无法获取 MCTier 的信令身份，请确认 MCTier 已启动且控制接口已连接。", "加入失败", IsWarn:=True)
+            Return
+        End If
         Dim Port As Integer = TcDetectLanPort()
         Dim Player As String = TcPlayerName()
         Dim Request As JObject = New JObject From {
-            {"name", Room.Trim()}, {"password", ""}, {"player_name", Player}, {"player_id", GetUuid().ToString()},
-            {"server_node", ""}, {"signaling_server", ""}, {"address_attempt", 0}
+            {"name", Room.Trim()}, {"password", ""}, {"player_name", Player}, {"player_id", PlayerId},
+            {"server_node", McTierDefaultNode}, {"signaling_server", McTierDefaultSignaling}, {"address_attempt", 0}
         }
         If Port > 0 Then Request("mc_port") = Port
 
         Dim Body As String = Nothing
-        Dim Code As Integer = McTierApiStatus("/lobby/join", Body, 30000, "POST", Request.ToString(Newtonsoft.Json.Formatting.None))
+        Dim Code As Integer = McTierApiStatus("/lobby/join", Body, 60000, "POST", Request.ToString(Newtonsoft.Json.Formatting.None))
         If Code = 200 Then
             Hint($"已加入大厅「{Room}」，房主的世界应会出现在多人游戏列表中。", HintType.Green)
         Else
@@ -496,7 +529,7 @@ Public Class PageLinkMain
     ''' <summary>MCTier 发布源（本项目 Release，内置去 Npcap 的 EasyTier）。</summary>
     Private Const McTierReleaseRepo As String = "ABC-team-tech/mctier-pcl-pe"
     Private Const McTierAssetName As String = "MCTier-PCLPE-v3.10.0.zip"
-    Private Const McTierAssetSha256 As String = "00607940936A18DA9B332BA078A6E38FE218DC9A0E54313BCD776E2B4F65A2D0"
+    Private Const McTierAssetSha256 As String = "F2C7111E392259909B4D1513D472CDBA313F45FBEBBFB6F867D4E7131F40E315"
 
     ''' <summary>下载并安装 MCTier 到启动器目录下的 MCTier\ 子目录。</summary>
     Private Sub DownloadMcTier()
