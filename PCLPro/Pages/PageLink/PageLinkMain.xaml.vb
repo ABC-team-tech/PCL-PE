@@ -243,12 +243,16 @@ Public Class PageLinkMain
 
     ''' <summary>
     ''' 以 --hmcl2 方式启动 MCTier，并等待其写出控制端口。
-    ''' 返回 True 表示控制接口可用（可驱动组网）；False 表示本机 MCTier 不支持该参数（原版）。
+    ''' 返回 True 表示控制接口可用（可驱动组网）；False 表示无法建立控制通道。
     ''' </summary>
     Private Shared Function StartMcTierWithControl(LocalExe As String) As Boolean
         Try
             ' 若已有可用的控制端口，直接复用
             If McTierControlAlive() Then Return True
+
+            ' MCTier 是单实例应用：已存在实例时，新的 --hmcl2 进程会直接退出、不写端口文件。
+            ' 因此必须先结束已有实例，否则必然拿不到控制端口。
+            If Not McTierEnsureNoRunningInstance() Then Return False
 
             Dim PortDir As String = IO.Path.Combine(IO.Path.GetTempPath(), "PCLPro-MCTier-" & Guid.NewGuid().ToString("N"))
             DirectoryUtils.Create(PortDir)
@@ -261,8 +265,8 @@ Public Class PageLinkMain
             }
             Process.Start(Info)
 
-            ' 轮询端口文件，最多 15 秒
-            For i = 1 To 150
+            ' 轮询端口文件，最多 30 秒（Tauri 冷启动含 WebView2 初始化，通常 2 秒内就绪）
+            For i = 1 To 300
                 If IO.File.Exists(PortFile) Then
                     Dim Text As String = IO.File.ReadAllText(PortFile).Trim()
                     Dim Port As Integer
@@ -282,6 +286,30 @@ Public Class PageLinkMain
             McTierPort = 0
             Return False
         End Try
+    End Function
+
+    ''' <summary>
+    ''' 确保没有 MCTier 实例在运行。返回 False 表示无法结束已有实例，调用方应中止启动。
+    ''' </summary>
+    Private Shared Function McTierEnsureNoRunningInstance() As Boolean
+        Dim Running = Diagnostics.Process.GetProcessesByName("MCTier")
+        If Running.Length = 0 Then Return True
+
+        Logger.Info($"检测到 {Running.Length} 个 MCTier 进程，正在结束以便建立控制接口")
+        For Each Proc As Diagnostics.Process In Running
+            Try
+                Proc.Kill()
+                Proc.WaitForExit(5000)
+            Catch ex As Exception
+                Logger.Warn(ex, $"结束 MCTier 进程失败（PID {Proc.Id}）")
+            End Try
+        Next
+        ' 等待进程真正退出，避免单实例锁未释放
+        For i = 1 To 30
+            If Diagnostics.Process.GetProcessesByName("MCTier").Length = 0 Then Return True
+            Thread.Sleep(100)
+        Next
+        Return Diagnostics.Process.GetProcessesByName("MCTier").Length = 0
     End Function
 
     Private Shared McTierPort As Integer = 0
@@ -375,7 +403,15 @@ Public Class PageLinkMain
                     Hint("MCTier 已启动并接入控制接口，可直接在下方创建或加入房间。", HintType.Green)
                     RefreshMcTierPanel(True)
                 Else
-                    Hint("已启动 MCTier（当前版本不支持控制接口，需在 MCTier 内手动操作）。", HintType.Blue)
+                    RefreshMcTierPanel(False)
+                    Dim Result As Integer = MyMsgBox(
+                        "MCTier 已启动，但启动器未能接管它（控制接口没有响应）。" & vbCrLf & vbCrLf &
+                        "常见原因：" & vbCrLf &
+                        "· 本机 MCTier 不是集成版，没有 --hmcl2 控制接口" & vbCrLf &
+                        "· 安全软件拦截了本地端口监听" & vbCrLf & vbCrLf &
+                        "可以点「重新下载」获取集成版；也可以直接在 MCTier 界面里手动创建或加入大厅。",
+                        "MCTier 未接管", "重新下载", "知道了")
+                    If Result = 1 Then DownloadMcTier()
                     If Port > 0 Then ClipboardSet(Port.ToString(), False)
                 End If
             End Sub)
@@ -460,7 +496,7 @@ Public Class PageLinkMain
     ''' <summary>MCTier 发布源（本项目 Release，内置去 Npcap 的 EasyTier）。</summary>
     Private Const McTierReleaseRepo As String = "ABC-team-tech/mctier-pcl-pe"
     Private Const McTierAssetName As String = "MCTier-PCLPE-v3.10.0.zip"
-    Private Const McTierAssetSha256 As String = "491F5921794B67AC3CC93C52FFC48C7F418500857AEB8572330886D9FEBD761E"
+    Private Const McTierAssetSha256 As String = "00607940936A18DA9B332BA078A6E38FE218DC9A0E54313BCD776E2B4F65A2D0"
 
     ''' <summary>下载并安装 MCTier 到启动器目录下的 MCTier\ 子目录。</summary>
     Private Sub DownloadMcTier()
