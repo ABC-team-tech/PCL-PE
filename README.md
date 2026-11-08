@@ -1,6 +1,6 @@
 # PCL Professional Edition（简称 PCL PE）
 
-PCL Professional Edition（简称 PCL PE）是基于 [PCL2（Plain Craft Launcher 2）](https://github.com/Meloong-Git/PCL) 二次开发的 Minecraft 启动器修改版，作者：[ABC-team-tech](https://github.com/ABC-team-tech)，项目仓库：[ABC-team-tech/PCL-PE](https://github.com/ABC-team-tech/PCL-PE)。
+PCL Professional Edition（简称 PCL PE）是基于 [PCL2（Plain Craft Launcher 2）](https://github.com/Meloong-Git/PCL) 二次开发的 Minecraft 启动器修改版，作者：[ABC-team-tech](https://github.com/ABC-team-tech)，项目仓库：[ABC-team-tech/PCL-PE-Unofficial](https://github.com/ABC-team-tech/PCL-PE-Unofficial)。
 
 > 本项目为第三方修改版，非 PCL 官方仓库。PCL 及其相关知识产权归原作者龙腾猫跃所有，本项目继续沿用上游的[《PCL 存储库合理使用指南》](https://github.com/Meloong-Git/PCL/blob/main/LICENCE)，并以同一份指南作为使用协议。
 
@@ -48,7 +48,7 @@ msbuild PCLPro.sln -restore -p:Configuration=Release
 
 脚本会清理旧产物、构建 Release，并在 `release\` 下生成 exe、zip 与 `SHA256SUMS.txt`。构建前请确保启动器已完全退出，否则 `bin\` 下的 DLL 被占用会导致构建失败（MSB3027）。
 
-将 `release\PCL-Professional-Edition-<版本>.exe` 上传到 [Releases](https://github.com/ABC-team-tech/PCL-PE/releases)。
+将 `release\PCL-Professional-Edition-<版本>.exe` 上传到 [Releases](https://github.com/ABC-team-tech/PCL-PE-Unofficial/releases)。
 
 > **附件命名有约束**：程序内「检查更新」会选取最新 Release 中第一个文件名**不含 `setup` 或 `install`** 的 `.exe` 附件。命中关键字会被判定为安装器，改走「启动安装程序」流程而非自替换更新。
 
@@ -66,7 +66,7 @@ msbuild PCLPro.sln -restore -p:Configuration=Release
 
 ## 致谢
 
-- [ABC-team-tech/PCL-PE](https://github.com/ABC-team-tech/PCL-PE)：本项目仓库
+- [ABC-team-tech/PCL-PE-Unofficial](https://github.com/ABC-team-tech/PCL-PE-Unofficial)：本项目仓库
 - [Meloong-Git/PCL](https://github.com/Meloong-Git/PCL)：PCL2 本体
 - [LTCatt/PCL2Help](https://github.com/LTCatt/PCL2Help)：帮助文档库
 - Terracotta 联机核心及其贡献者

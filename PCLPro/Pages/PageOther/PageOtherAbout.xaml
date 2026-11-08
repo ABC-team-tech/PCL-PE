@@ -49,14 +49,14 @@
                     <TextBlock Margin="0,0,0,2" LineHeight="20" TextWrapping="Wrap"
                                Text="本项目（PCL PE 修改版）是基于 PCL 公开源代码进行二次开发的第三方独立版本，包含了主线暂未制作的功能与改进。&#xa;&#xa;本项目并非由上游开发者龙腾猫跃开发与管理，且与龙腾猫跃本人及 PCL 官方无关。本项目版本号与 PCL 主线并非严格对应，请勿向 PCL 官方仓库反馈本版本的问题。&#xa;&#xa;本项目基于龙腾猫跃开发的 Plain Craft Launcher (PCL) 源代码进行二次创作，属于非官方修改版，声明如下：" />
                     <TextBlock Margin="10,10,0,2" LineHeight="22" TextWrapping="Wrap"
-                               Text="• 原作者：龙腾猫跃&#xa;• 原项目仓库：https://github.com/Meloong-Git/PCL&#xa;• 本项目作者：ABC-team-tech&#xa;• 本项目仓库：https://github.com/ABC-team-tech/PCL-PE&#xa;• 本项目性质：第三方基于 PCL 独立进行二次创作的产物，非官方版本。&#xa;• 许可协议：继续沿用《PCL 存储库合理使用指南》作为使用协议。" />
+                               Text="• 原作者：龙腾猫跃&#xa;• 原项目仓库：https://github.com/Meloong-Git/PCL&#xa;• 本项目作者：ABC-team-tech&#xa;• 本项目仓库：https://github.com/ABC-team-tech/PCL-PE-Unofficial&#xa;• 本项目性质：第三方基于 PCL 独立进行二次创作的产物，非官方版本。&#xa;• 许可协议：继续沿用《PCL 存储库合理使用指南》作为使用协议。" />
                     <TextBlock Margin="0,10,0,0" LineHeight="20" TextWrapping="Wrap"
                                Text="使用本项目即表示你已知悉：此为第三方二次开发版本，不保证可用性，其开发流程与管理与龙腾猫跃及原版 PCL 无关。" />
                     <StackPanel Orientation="Horizontal" Height="35" HorizontalAlignment="Left" Margin="0,14,0,0">
                         <local:MyButton Text="原项目仓库" Width="150" Padding="13,0" Margin="0,0,15,0"
                                         local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/Meloong-Git/PCL" />
                         <local:MyButton Text="本项目仓库" Width="150" Padding="13,0" Margin="0,0,15,0"
-                                        local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/ABC-team-tech/PCL-PE" />
+                                        local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/ABC-team-tech/PCL-PE-Unofficial" />
                         <local:MyButton Text="合理使用指南" Width="160" Padding="13,0" Margin="0,0,15,0"
                                         local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/Meloong-Git/PCL/blob/main/LICENCE" />
                         <local:MyButton Text="用户协议与免责声明" Width="180" Padding="13,0"

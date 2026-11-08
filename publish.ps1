@@ -100,6 +100,6 @@ Write-Host "`n发布包已生成:" -ForegroundColor Green
 Get-ChildItem $OutputDir -File | ForEach-Object {
     "{0,-45} {1,8:N2} MB" -f $_.Name, ($_.Length / 1MB)
 }
-Write-Host "`n上传到: https://github.com/ABC-team-tech/PCL-PE/releases/new" -ForegroundColor Cyan
+Write-Host "`n上传到: https://github.com/ABC-team-tech/PCL-PE-Unofficial/releases/new" -ForegroundColor Cyan
 Write-Host "Tag 建议: v$version" -ForegroundColor Cyan
 Write-Host "附件请上传 .exe（文件名不要包含 setup / install，否则会被判定为安装器）" -ForegroundColor Yellow

@@ -974,7 +974,7 @@ Public Module ModBase
 
 #Region "自动更新检查"
 
-    Private Const UpdateRepo As String = "ABC-team-tech/PCL-PE"
+    Private Const UpdateRepo As String = "ABC-team-tech/PCL-PE-Unofficial"
     Private Const UpdateApi As String = "https://api.github.com/repos/" & UpdateRepo & "/releases/latest"
 
     Private ReadOnly UpdateMirrors As String() = {"https://ghfast.top/", "https://gh-proxy.com/", "https://ghproxy.net/"}
